@@ -37,3 +37,7 @@ In `libetpan/build-windows`, using Visual Studio 2013, open `libetpan.sln`.
 Then, build.
 
 Public headers will be located in `libetpan/build-windows/include`.
+
+相关依赖包下载：
+链接：https://pan.baidu.com/s/1pMwcPZH
+ 密码：0jro
