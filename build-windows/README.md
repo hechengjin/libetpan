@@ -41,3 +41,20 @@ Public headers will be located in `libetpan/build-windows/include`.
 相关依赖包下载：
 链接：https://pan.baidu.com/s/1pMwcPZH
  密码：0jro
+ 
+ 
+ 测试程序使用方法
+ readmsg.exe -d imap -s imap.139.com -p 143 -u xx@139.com -v password -l INBOX 2445 2446 
+ 
+ smtpsend.exe -f firemail_wang@126.com -u firemail_wang@126.com -v password -s smtp.126.com -p 25 rec1@163.com rec2@189.cn  ------------回车后，再一起输入如下绿色内容
+Date: Fri, 08 Dec 2017 10:28:32 +0800
+To: 15313159857@163.com
+From: firemail_wang@126.com
+Subject: test Fri, 08 Dec 2017 10:28:32 +0800
+Message-Id: <20171208102831.010808@qq.com>
+X-Mailer: swaks v20170101.0 jetmore.org/john/code/swaks/
+
+
+This is a test mailing                                   ----------- 回车后按Ctrl+Z再回车
+^Z
+Sent ok.                      

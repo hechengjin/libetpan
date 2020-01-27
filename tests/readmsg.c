@@ -249,7 +249,7 @@ int main(int argc, char ** argv)
   char * user;
   char * password;
   int auth_type;
-  bool xoauth2;
+  bool xoauth2 = false;
   char * path;
   char * cache_directory;
   char * flags_directory;
