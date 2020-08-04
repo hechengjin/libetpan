@@ -530,6 +530,9 @@ int mailsmtp_data_message_quit_no_disconnect(mailsmtp * session,
     return MAILSMTP_ERROR_STREAM;
   
   r = send_quit(session);
+  if (r != MAILSMTP_NO_ERROR)
+    return r;
+
   r = read_response(session);
   
   switch(r) {
@@ -609,6 +612,9 @@ int mailesmtp_parse_ehlo(mailsmtp * session)
         session->smtp_max_msg_size = strtoul(response + 4, NULL, 10);
       }
       /* TODO: grab optionnal max size */
+    }
+    else if (!strncasecmp(response, "CLIENTID", 8) && isdelim(response[8])) {
+      session->esmtp |= MAILSMTP_ESMTP_CLIENTID;
     }
     else if (!strncasecmp(response, "PIPELINING", 10) && isdelim(response[10])) {
       session->esmtp |= MAILSMTP_ESMTP_PIPELINING;
@@ -1065,6 +1071,32 @@ int mailsmtp_auth(mailsmtp * session, const char * user, const char * pass)
   }
 }
 
+int mailesmtp_clientid(mailsmtp * session,
+    const char * type, const char * clientid) {
+  char command[SMTP_STRING_SIZE];
+  int r;
+
+  if (!(session->esmtp & MAILSMTP_ESMTP_CLIENTID))
+    return MAILSMTP_ERROR_CLIENTID_NOT_SUPPORTED;
+
+  snprintf(command, SMTP_STRING_SIZE, "CLIENTID %s %s\r\n",
+          type, clientid);
+
+  r = send_command(session, command);
+  if (r == -1)
+    return MAILSMTP_ERROR_STREAM;
+  r = read_response(session);
+
+  switch (r) {
+  case 250:
+    return MAILSMTP_NO_ERROR;
+  case 501: // syntax error
+  case 503: // duplicate clientid or not permitted because of policy
+  default:
+    return MAILSMTP_ERROR_UNEXPECTED_CODE;
+  }
+}
+
 /* TODO: add mailesmtp_etrn, mailssmtp_expn */
 
 int mailesmtp_starttls(mailsmtp * session)
@@ -1078,6 +1110,14 @@ int mailesmtp_starttls(mailsmtp * session)
   if (r == -1)
     return MAILSMTP_ERROR_STREAM;
   r = read_response(session);
+
+  // Detect if the server send extra data after the STARTTLS response.
+  // This *may* be a "response injection attack".
+  if (session->stream->read_buffer_len != 0) {
+    // Since it is also protocol violation, exit.
+    // There is no general error type for STARTTLS errors in SMTP
+    return MAILSMTP_ERROR_SSL;
+  }
 
   switch (r) {
   case 220:
@@ -1224,6 +1264,8 @@ const char * mailsmtp_strerror(int errnum)
     return "Transaction failed";
   case MAILSMTP_ERROR_MEMORY:
     return "Memory error";
+  case MAILSMTP_ERROR_AUTH_NOT_SUPPORTED:
+    return "Authentication is not supported";
   case MAILSMTP_ERROR_CONNECTION_REFUSED:
     return "Connection refused";
   case MAILSMTP_ERROR_STARTTLS_TEMPORARY_FAILURE:
@@ -1231,7 +1273,9 @@ const char * mailsmtp_strerror(int errnum)
   case MAILSMTP_ERROR_STARTTLS_NOT_SUPPORTED:
     return "TLS not supported by server";
   case MAILSMTP_ERROR_AUTH_LOGIN:
-  	return "Login failed";
+    return "Login failed";
+  case MAILSMTP_ERROR_CLIENTID_NOT_SUPPORTED:
+    return "ClientID not supported by server";
   default:
     return "Unknown error code";
   }
